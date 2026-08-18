@@ -1,0 +1,31 @@
+services:
+  - type: web
+    name: gr-asset-main
+    runtime: python
+    plan: free
+    region: oregon
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT app:app
+    envVars:
+      - key: FLASK_ENV
+        value: production
+      - key: SECRET_KEY
+        generateValue: true
+      - key: DATABASE_URL
+        sync: false
+      - key: APP_URL
+        sync: false
+      - key: ADMIN_EMAIL
+        sync: false
+      - key: MAIL_SERVER
+        value: smtp.office365.com
+      - key: MAIL_PORT
+        value: "587"
+      - key: MAIL_USERNAME
+        sync: false
+      - key: MAIL_PASSWORD
+        sync: false
+      - key: MAIL_USE_SSL
+        value: "false"
+      - key: ORG_NAME
+        value: GR
