@@ -1,0 +1,97 @@
+{% extends 'base.html' %}
+{% block title %}Countries — GR AMS{% endblock %}
+{% block page_title %}Countries{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><p>Country codes determine the GR asset tag prefix.</p></div>
+  <button onclick="document.getElementById('add-proj-modal').style.display='flex'" class="btn btn-primary">+ Add Country</button>
+</div>
+<div class="alert alert-info">Asset tags are auto-generated as: <strong>GR-[COUNTRY CODE]-[CATEGORY CODE]-[NUMBER]</strong> e.g. <span class="asset-tag" style="font-size:12px">GR-UG-IT-0001</span></div>
+<div class="card">
+  <div class="card-body">
+    <table>
+      <thead><tr><th>Country Name</th><th>Code</th><th>Year</th><th>Status</th><th>Assets</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for p in projects %}
+        <tr>
+          <td><strong>{{ p.name }}</strong><br><span class="text-muted text-sm">{{ p.description or '' }}</span></td>
+          <td><span class="asset-tag" style="font-size:12px">{{ p.code }}</span></td>
+          <td>{{ p.year or '—' }}</td>
+          <td><span class="badge badge-{{ p.status }}">{{ p.status|title }}</span></td>
+          <td>{{ p.assets.count() }}</td>
+          <td>
+            <div class="flex gap-2">
+              <button onclick="editProj({{ p.id }},'{{ p.name }}','{{ p.code }}','{{ p.year or '' }}','{{ p.status }}','{{ p.description or '' }}')" class="btn btn-sm btn-outline">Edit</button>
+              <form method="POST" action="{{ url_for('admin.countries_delete', proj_id=p.id) }}" onsubmit="return confirm('Delete this country?')">
+                <button type="submit" class="btn btn-sm btn-danger">Del</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add modal -->
+<div id="add-proj-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Add Country</h3>
+      <button onclick="document.getElementById('add-proj-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin.countries_new') }}">
+      <div style="padding:20px 24px">
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>Country Name *</label><input name="name" placeholder="e.g. Uganda" required></div>
+          <div class="form-group"><label>Code *</label><input name="code" placeholder="e.g. UG" oninput="this.value=this.value.toUpperCase()" required></div>
+          <div class="form-group"><label>Year</label><input name="year" placeholder="2024" value="{{ now.year }}"></div>
+          <div class="form-group"><label>Status</label><select name="status"><option value="active">Active</option><option value="closed">Closed</option></select></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Description</label><textarea name="description" style="min-height:60px" placeholder="Brief description"></textarea></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('add-proj-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Country</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div id="edit-proj-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:560px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Edit Country</h3>
+      <button onclick="document.getElementById('edit-proj-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+    </div>
+    <form id="edit-proj-form" method="POST">
+      <div style="padding:20px 24px">
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>Country Name *</label><input id="ep-name" name="name" required></div>
+          <div class="form-group"><label>Code *</label><input id="ep-code" name="code" oninput="this.value=this.value.toUpperCase()" required></div>
+          <div class="form-group"><label>Year</label><input id="ep-year" name="year"></div>
+          <div class="form-group"><label>Status</label><select id="ep-status" name="status"><option value="active">Active</option><option value="closed">Closed</option></select></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Description</label><textarea id="ep-desc" name="description" style="min-height:60px"></textarea></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('edit-proj-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function editProj(id,name,code,year,status,desc){
+  document.getElementById('edit-proj-form').action='/admin/countries/'+id+'/edit';
+  document.getElementById('ep-name').value=name;
+  document.getElementById('ep-code').value=code;
+  document.getElementById('ep-year').value=year;
+  document.getElementById('ep-status').value=status;
+  document.getElementById('ep-desc').value=desc;
+  document.getElementById('edit-proj-modal').style.display='flex';
+}
+</script>
+{% endblock %}

@@ -1,0 +1,132 @@
+{% extends 'base.html' %}
+{% block title %}Review Request — GR AMS{% endblock %}
+{% block page_title %}Review Asset Request{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><h2>Review Asset Request</h2><p>Approve and assign an asset or reject this request.</p></div>
+  <a href="{{ url_for('requests.asset_requests') }}" class="btn btn-outline">← Back</a>
+</div>
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+  <!-- Request details -->
+  <div class="card">
+    <div class="card-header"><h2>Request Details</h2></div>
+    <div style="padding:20px 24px">
+      <div class="form-grid" style="gap:12px">
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">Requested By</div>
+          <div style="font-size:14px;font-weight:500;margin-top:3px">{{ req.requested_by.name }}</div>
+          <div style="font-size:12px;color:var(--text-muted)">{{ req.requested_by.department or '—' }} · {{ req.requested_by.email or '—' }}</div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">Item Requested</div>
+          <div style="font-size:16px;font-weight:600;margin-top:3px;color:var(--primary)">{{ req.item_requested }}</div>
+          {% if req.category %}<div style="font-size:12px;color:var(--text-muted)">Category: {{ req.category.name }}</div>{% endif %}
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">Duration Needed</div>
+          <div style="font-size:14px;font-weight:500;margin-top:3px">
+            {% if req.duration_days %}{{ req.duration_days }} day{{ 's' if req.duration_days != 1 else '' }}{% else %}Not specified{% endif %}
+          </div>
+          {% if req.date_needed_from %}
+          <div style="font-size:12px;color:var(--text-muted)">{{ req.date_needed_from|dateformat }} → {{ req.date_needed_to|dateformat }}</div>
+          {% endif %}
+        </div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">Requested On</div>
+          <div style="font-size:13px;margin-top:3px">{{ req.requested_at.strftime('%d %b %Y at %H:%M') }}</div>
+        </div>
+        <div class="divider"></div>
+        <div>
+          <div style="font-size:11px;font-weight:600;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px">Purpose</div>
+          <div style="font-size:13px;margin-top:4px;line-height:1.6">{{ req.purpose }}</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Review form -->
+  <div>
+    <!-- Suggested assets -->
+    <div class="card" style="margin-bottom:16px">
+      <div class="card-header">
+        <h2>{{ 'Suggested Assets' if suggested else 'Available Assets' }}</h2>
+        <span class="text-muted text-sm">{{ suggested|length if suggested else available|length }} available</span>
+      </div>
+      <div class="card-body">
+        {% set display = suggested if suggested else available %}
+        {% if display %}
+        <table>
+          <thead><tr><th>Tag</th><th>Name</th><th>Condition</th></tr></thead>
+          <tbody>
+            {% for a in display %}
+            <tr style="cursor:pointer" onclick="selectAsset('{{ a.id }}','{{ a.tag }}','{{ a.name }}')">
+              <td><span class="asset-tag" style="font-size:11px">{{ a.tag }}</span></td>
+              <td>{{ a.name }}<br><span class="text-muted text-sm">{{ a.location or '—' }}</span></td>
+              <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        <p class="text-muted text-sm" style="padding:8px 16px">Click a row to select it for assignment.</p>
+        {% else %}
+        <div style="padding:24px;text-align:center;color:var(--text-muted)">
+          <p>No available unassigned assets match this request.</p>
+          <a href="{{ url_for('assets.new') }}" class="btn btn-sm btn-outline" style="margin-top:8px">Register New Asset</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Approve / Reject form -->
+    <div class="card">
+      <div class="card-header"><h2>Your Decision</h2></div>
+      <div style="padding:20px 24px">
+        <form method="POST">
+
+          <!-- Selected asset display -->
+          <div id="selected-box" style="display:none;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:12px 16px;margin-bottom:16px">
+            <div style="font-size:11px;color:var(--text-muted);font-weight:600;text-transform:uppercase;margin-bottom:4px">Selected Asset</div>
+            <div id="selected-label" style="font-size:14px;font-weight:600;color:var(--primary)"></div>
+          </div>
+          <input type="hidden" name="assigned_asset_id" id="asset-id-input">
+
+          <div class="form-group" style="margin-bottom:16px">
+            <label>Note to User (optional)</label>
+            <textarea name="admin_note" placeholder="e.g. Asset assigned for the requested period. Please return by the agreed date." style="min-height:80px"></textarea>
+          </div>
+
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+            <button type="submit" name="action" value="approve" class="btn btn-primary"
+                    onclick="return validateApprove()">✓ Approve & Assign</button>
+            <button type="submit" name="action" value="reject"  class="btn btn-danger">✗ Reject Request</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+</div>
+
+<script>
+function selectAsset(id, tag, name) {
+  document.getElementById('asset-id-input').value = id;
+  document.getElementById('selected-label').textContent = tag + ' — ' + name;
+  document.getElementById('selected-box').style.display = 'block';
+  // Highlight selected row
+  document.querySelectorAll('tbody tr').forEach(function(r) {
+    r.style.background = '';
+  });
+  event.currentTarget.style.background = 'rgba(26,58,92,.06)';
+}
+function validateApprove() {
+  if (!document.getElementById('asset-id-input').value) {
+    alert('Please select an asset from the table above before approving.');
+    return false;
+  }
+  return true;
+}
+</script>
+{% endblock %}

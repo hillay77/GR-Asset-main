@@ -1,0 +1,59 @@
+{% extends 'base.html' %}
+{% block title %}Import Results — GR AMS{% endblock %}
+{% block page_title %}Import Complete{% endblock %}
+{% block content %}
+
+<div class="page-title">
+  <a href="{{ url_for('assets.index') }}" class="btn btn-primary">View All Assets →</a>
+</div>
+
+<!-- Summary -->
+<div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px">
+  <div class="stat-card success">
+    <div class="label">Imported</div>
+    <div class="value">{{ imported }}</div>
+    <div class="sub">Asset{{ 's' if imported != 1 else '' }} added successfully</div>
+  </div>
+  <div class="stat-card {% if skipped > 0 %}warn{% else %}primary{% endif %}">
+    <div class="label">Skipped</div>
+    <div class="value">{{ skipped }}</div>
+    <div class="sub">Row{{ 's' if skipped != 1 else '' }} not imported</div>
+  </div>
+  <div class="stat-card {% if errors %}accent{% else %}primary{% endif %}">
+    <div class="label">Notices</div>
+    <div class="value">{{ errors|length }}</div>
+    <div class="sub">Warning{{ 's' if errors|length != 1 else '' }} or info messages</div>
+  </div>
+</div>
+
+{% if imported > 0 %}
+<div class="alert alert-success">
+  ✓ <strong>{{ imported }} asset{{ 's' if imported != 1 else '' }}</strong> imported successfully into the system.
+</div>
+{% endif %}
+
+{% if errors %}
+<div class="card">
+  <div class="card-header">
+    <h2>⚠ Notices & Warnings</h2>
+    <span class="text-muted text-sm">Review these — some rows may have been skipped or imported with missing fields</span>
+  </div>
+  <div style="padding:16px 20px">
+    {% for e in errors %}
+    <div style="padding:8px 12px;margin-bottom:6px;background:#fef9c3;border-left:3px solid #f59e0b;border-radius:4px;font-size:13px">
+      {{ e|safe }}
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+{% if imported == 0 and skipped == 0 %}
+<div class="alert alert-error">No assets were imported. Please check your file and try again.</div>
+{% endif %}
+
+<div style="display:flex;gap:10px;margin-top:8px">
+  <a href="{{ url_for('assets.bulk_import') }}" class="btn btn-outline">⬆ Import Another File</a>
+  <a href="{{ url_for('assets.index') }}"       class="btn btn-primary">View All Assets →</a>
+</div>
+{% endblock %}

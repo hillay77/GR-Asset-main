@@ -1,0 +1,29 @@
+{% extends 'base.html' %}
+{% block title %}Print by User — GR AMS{% endblock %}
+{% block page_title %}Print Asset Forms by User{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><h2>Print Asset Forms by User</h2><p>Select a user to preview and print all their asset acknowledgement forms.</p></div>
+</div>
+<div class="card" style="max-width:600px;margin-bottom:24px">
+  <div class="card-header"><h2>Select a User</h2></div>
+  <div style="padding:20px 24px">
+    <div class="form-group">
+      <label>Staff User</label>
+      <select id="user-select" class="filter-sel" style="width:100%" onchange="goUser()">
+        <option value="">— Choose a user —</option>
+        {% for u in users %}
+        {% set cnt = u.assigned_assets.filter_by(status='active').count() %}
+        <option value="{{ u.id }}">{{ u.name }} ({{ u.department or '—' }}) — {{ cnt }} asset{{ 's' if cnt != 1 else '' }}</option>
+        {% endfor %}
+      </select>
+    </div>
+  </div>
+</div>
+<script>
+function goUser(){
+  var id = document.getElementById('user-select').value;
+  if(id) window.location.href = '/assets/print/user/' + id;
+}
+</script>
+{% endblock %}

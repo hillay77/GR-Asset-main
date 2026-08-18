@@ -1,0 +1,82 @@
+{% extends 'base.html' %}
+{% block title %}My Dashboard — GR AMS{% endblock %}
+{% block page_title %}My Dashboard{% endblock %}
+{% block content %}
+
+<div style="background:var(--primary);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:18px">
+  <img src="{{ url_for('static', filename='img/GR.jpg') }}" alt="GR Logo"
+       style="width:60px;height:60px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;flex-shrink:0">
+  <div style="color:#fff">
+    <div style="font-size:20px;font-weight:700">GR Asset Management System</div>
+    <div style="font-size:13px;opacity:.7;margin-top:2px">Welcome, {{ current_user.name }} — {{ now.strftime('%A, %d %B %Y') }}</div>
+  </div>
+</div>
+
+<div class="stats-grid" style="grid-template-columns:repeat(5,1fr)">
+  <div class="stat-card accent"><div class="label">My Assets</div><div class="value">{{ my_assets|length }}</div><div class="sub"><a href="{{ url_for('assets.index') }}" style="color:inherit">View all →</a></div></div>
+  <div class="stat-card warn"><div class="label">Pending Requests</div><div class="value">{{ pending_asset }}</div><div class="sub"><a href="{{ url_for('requests.request_status') }}" style="color:inherit">Track status →</a></div></div>
+  <div class="stat-card success"><div class="label">Approved Requests</div><div class="value">{{ approved_asset }}</div></div>
+  <div class="stat-card primary"><div class="label">Returned Assets</div><div class="value">{{ returned_count }}</div></div>
+  <div class="stat-card warn"><div class="label">Repair Requests</div><div class="value">{{ pending_repair }}</div><div class="sub"><a href="{{ url_for('requests.repair_requests') }}" style="color:inherit">View repairs →</a></div></div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>My Assets</h2><span class="text-muted text-sm">{{ my_assets|length }} in custody · {{ total_value|currency }}</span></div>
+  <div class="card-body">
+    {% if my_assets %}
+    <table>
+      <thead><tr><th>Asset Tag</th><th>Name / Category</th><th>Country</th><th>Condition</th><th>Assigned On</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for a in my_assets %}
+        <tr>
+          <td><span class="asset-tag">{{ a.tag }}</span></td>
+          <td><strong>{{ a.name }}</strong><br><span class="text-muted text-sm">{{ a.category.name if a.category else '—' }}</span></td>
+          <td>{{ a.project.name if a.project else '—' }}</td>
+          <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+          <td class="text-muted text-sm">{{ a.assigned_on|dateformat }}</td>
+          <td>
+            <div class="flex gap-2 flex-wrap">
+              <a href="{{ url_for('assets.detail', asset_id=a.id) }}" class="btn btn-sm btn-outline">Details</a>
+              <a href="{{ url_for('assets.asset_receipt_pdf', asset_id=a.id) }}" class="btn btn-sm btn-outline">📄 Receipt</a>
+              {% if pending_returns.get(a.id) %}
+              <span class="btn btn-sm" style="background:#fef9c3;color:#854d0e;cursor:default">⏳ Return Pending</span>
+              {% else %}
+              <a href="{{ url_for('requests.new_return_request', asset_id=a.id) }}" class="btn btn-sm btn-warn">↩ Return</a>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:48px 20px;color:var(--text-muted)">
+      <p>No assets assigned yet.</p>
+      <a href="{{ url_for('requests.new_asset_request') }}" class="btn btn-primary" style="margin-top:12px">Request an Asset</a>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+{% if my_returns %}
+<div class="card">
+  <div class="card-header"><h2>Returned Assets</h2></div>
+  <div class="card-body">
+    <table>
+      <thead><tr><th>Asset Tag</th><th>Asset Name</th><th>Returned On</th><th>Condition</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for r in my_returns %}
+        <tr>
+          <td><span class="asset-tag" style="font-size:11px">{{ r.asset.tag }}</span></td>
+          <td>{{ r.asset.name }}</td>
+          <td>{{ r.returned_at|dateformat }}</td>
+          <td><span class="badge badge-{{ r.condition_at_return }}">{{ (r.condition_at_return or '—')|title }}</span></td>
+          <td class="text-muted">{{ r.notes or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

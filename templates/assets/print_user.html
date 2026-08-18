@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>Asset Acknowledgement — {{ user.name }}</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&family=DM+Mono:wght@400;500&display=swap');
+:root{--primary:#1a3a5c;--accent:#e8840a;--border:#d8dce3;--text:#1a2230;--text-muted:#6b7280}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;color:var(--text);font-size:13px;line-height:1.5;background:#f0f2f5;padding:20px}
+.no-print{margin-bottom:20px;display:flex;gap:10px;align-items:center}
+.btn{display:inline-flex;align-items:center;gap:6px;padding:9px 18px;border-radius:8px;font-size:13px;font-weight:500;font-family:inherit;cursor:pointer;border:1px solid transparent;text-decoration:none}
+.btn-primary{background:var(--primary);color:#fff}.btn-outline{background:#fff;color:var(--primary);border-color:var(--border)}
+.print-wrap{background:#fff;max-width:780px;margin:0 auto;padding:40px;border:1px solid var(--border);border-radius:8px}
+.print-header{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:24px;padding-bottom:20px;border-bottom:2px solid var(--primary)}
+.org h1{font-size:22px;font-weight:700;color:var(--primary)}.org p{font-size:12px;color:var(--text-muted);margin-top:2px}
+.hdr-right{text-align:right}.hdr-right .count{font-size:20px;font-weight:700;color:var(--primary)}.hdr-right .sub{font-size:11px;color:var(--text-muted);margin-top:4px}
+.section-title{font-size:11px;text-transform:uppercase;letter-spacing:.8px;color:var(--text-muted);font-weight:600;border-bottom:1px solid var(--border);padding-bottom:6px;margin-bottom:14px}
+.user-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px 24px;margin-bottom:24px}
+.field .label{font-size:11px;color:var(--text-muted);font-weight:500}.field .val{font-size:14px;font-weight:500}
+.asset-block{border-bottom:1px dashed #ccc;padding-bottom:20px;margin-bottom:20px}
+.asset-block:last-child{border-bottom:none;margin-bottom:0}
+.asset-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:12px}
+.asset-tag{font-family:'DM Mono',monospace;font-size:12px;background:var(--primary);color:#fff;padding:3px 8px;border-radius:4px;letter-spacing:.3px}
+.asset-num{font-size:11px;color:var(--text-muted)}
+.asset-grid{display:grid;grid-template-columns:1fr 1fr;gap:8px 24px}
+.total-row{display:flex;justify-content:flex-end;margin-top:12px;padding-top:12px;border-top:1px solid var(--border)}
+.total-row span{font-size:13px;font-weight:600;color:var(--primary)}
+.sig-area{display:grid;grid-template-columns:1fr 1fr;gap:40px;margin-top:36px}
+.sig-box{border-top:1.5px solid var(--text);padding-top:8px}
+.sig-box .sig-label{font-size:11px;color:var(--text-muted)}.sig-box .sig-name{font-size:12px;color:#555;margin-top:4px}
+.sig-line{height:44px}
+@media print{
+  body{background:#fff;padding:0}
+  .no-print{display:none!important}
+  .print-wrap{border:none;border-radius:0;padding:20px;max-width:100%}
+}
+</style>
+</head>
+<body>
+<div class="no-print">
+  <a href="javascript:window.print()" class="btn btn-primary">🖨 Print / Save PDF</a>
+  <a href="{{ url_for('main.dashboard') if current_user.is_staff_portal else url_for('assets.assign_user', user_id=user.id) }}" class="btn btn-outline">← Back</a>
+  <span style="font-size:13px;color:var(--text-muted)">Asset Acknowledgement Form for <strong>{{ user.name }}</strong> — {{ assets|length }} asset(s)</span>
+</div>
+
+<div class="print-wrap">
+  <!-- Header -->
+  <div class="print-header">
+    <div class="org" style="display:flex;align-items:center;gap:14px">
+      <img src="/static/img/GR.jpg"
+           alt="GR Logo"
+           style="width:64px;height:64px;object-fit:contain;border-radius:8px;border:1px solid #e5e7eb;padding:3px;flex-shrink:0">
+      <div>
+        <h1>GR</h1>
+        <p>Asset Management System</p>
+        <p style="margin-top:4px;font-size:11px">Printed: {{ now.strftime('%d %B %Y') }}</p>
+      </div>
+    </div>
+    <div class="hdr-right">
+      <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:4px">Asset Acknowledgement</div>
+      <div class="count">{{ assets|length }} Asset{{ 's' if assets|length != 1 else '' }}</div>
+      <div class="sub">Total Value: {{ total|currency }}</div>
+    </div>
+  </div>
+
+  <!-- User -->
+  <div style="margin-bottom:24px">
+    <div class="section-title">Assigned User</div>
+    <div class="user-grid">
+      <div class="field"><div class="label">Full Name</div><div class="val">{{ user.name }}</div></div>
+      <div class="field"><div class="label">Department</div><div class="val">{{ user.department or '—' }}</div></div>
+      <div class="field"><div class="label">Email</div><div class="val">{{ user.email or '—' }}</div></div>
+      <div class="field"><div class="label">Username</div><div class="val">{{ user.username }}</div></div>
+    </div>
+  </div>
+
+  <!-- Assets -->
+  <div style="margin-bottom:20px">
+    <div class="section-title">Assets in Custody ({{ assets|length }})</div>
+    {% for a in assets %}
+    <div class="asset-block">
+      <div class="asset-header">
+        <div>
+          <span class="asset-tag">{{ a.tag }}</span>
+          {% if a.serial_number %}<span style="font-size:11px;color:var(--text-muted);margin-left:8px">S/N: {{ a.serial_number }}</span>{% endif %}
+        </div>
+        <div class="asset-num">Asset #{{ '%03d'|format(a.asset_number) }}</div>
+      </div>
+      <div class="asset-grid">
+        <div class="field"><div class="label">Asset Name</div><div class="val">{{ a.name }}</div></div>
+        <div class="field"><div class="label">Category</div><div class="val">{{ a.category.name if a.category else '—' }}</div></div>
+        <div class="field"><div class="label">Country</div><div class="val">{{ a.project.name if a.project else '—' }}{% if a.project and a.project.code %} ({{ a.project.code }}){% endif %}</div></div>
+        <div class="field"><div class="label">Vendor</div><div class="val">{{ a.vendor.name if a.vendor else '—' }}</div></div>
+        <div class="field"><div class="label">Purchase Price</div><div class="val">{{ a.price|currency }}</div></div>
+        <div class="field"><div class="label">Date Purchased</div><div class="val">{{ a.date_purchased|dateformat }}</div></div>
+        <div class="field"><div class="label">Condition</div><div class="val">{{ a.condition|title }}</div></div>
+        <div class="field"><div class="label">Location</div><div class="val">{{ a.location or '—' }}</div></div>
+        <div class="field"><div class="label">Assigned On</div><div class="val">{{ a.assigned_on|dateformat }}</div></div>
+        <div class="field"><div class="label">Status</div><div class="val">{{ a.status|upper }}</div></div>
+      </div>
+      {% if a.description %}<div class="field" style="margin-top:8px"><div class="label">Specs / Description</div><div class="val">{{ a.description }}</div></div>{% endif %}
+    </div>
+    {% endfor %}
+    {% if assets|length > 1 %}
+    <div class="total-row"><span>Total Value in Custody: {{ total|currency }}</span></div>
+    {% endif %}
+  </div>
+
+  <!-- Signatures -->
+  <div class="sig-area">
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-label">Received By (Signature &amp; Date)</div><div class="sig-name">{{ user.name }}</div></div>
+    <div class="sig-box"><div class="sig-line"></div><div class="sig-label">Issued By / Administrator</div></div>
+  </div>
+</div>
+</body>
+</html>

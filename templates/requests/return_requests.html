@@ -1,0 +1,78 @@
+{% extends 'base.html' %}
+{% block title %}Return Requests — GR AMS{% endblock %}
+{% block page_title %}Return Requests{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text">
+    <h2>Return Requests</h2>
+    <p>{% if current_user.role == 'user' %}Your asset return requests.{% else %}Staff return requests awaiting your approval.{% endif %}</p>
+  </div>
+</div>
+
+{% set pending = requests|selectattr('status','equalto','pending')|list %}
+{% if pending and current_user.role in ('admin','finance') %}
+<div class="alert alert-warning">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  {{ pending|length }} return request{{ 's' if pending|length != 1 else '' }} pending approval.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-body">
+    {% if requests %}
+    <table>
+      <thead>
+        <tr>
+          {% if current_user.role != 'user' %}<th>Requested By</th>{% endif %}
+          <th>Asset</th><th>Condition at Return</th><th>Reason</th><th>Status</th><th>Submitted</th>
+          {% if current_user.role in ('admin','finance') %}<th>Action</th>{% endif %}
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in requests %}
+        <tr>
+          {% if current_user.role != 'user' %}
+          <td><strong>{{ r.requested_by.name }}</strong><br><span class="text-muted text-sm">{{ r.requested_by.department or '—' }}</span></td>
+          {% endif %}
+          <td>
+            <span class="asset-tag" style="font-size:11px">{{ r.asset.tag }}</span><br>
+            <span class="text-muted text-sm">{{ r.asset.name }}</span>
+          </td>
+          <td><span class="badge badge-{{ r.condition_at_return }}">{{ (r.condition_at_return or '—')|title }}</span></td>
+          <td style="max-width:200px;white-space:normal">{{ r.reason or '—' }}</td>
+          <td>
+            {% if r.status == 'pending' %}
+              <span class="badge" style="background:#fef9c3;color:#854d0e">⏳ Pending</span>
+            {% elif r.status == 'approved' %}
+              <span class="badge badge-good">✓ Approved</span>
+            {% else %}
+              <span class="badge badge-poor">✗ Rejected</span>
+            {% endif %}
+            {% if r.admin_note %}<br><span style="font-size:11px;color:var(--text-muted)">{{ r.admin_note }}</span>{% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ r.requested_at.strftime('%d %b %Y') }}</td>
+          {% if current_user.role in ('admin','finance') %}
+          <td>
+            {% if r.status == 'pending' %}
+            <form method="POST" action="{{ url_for('requests.review_return_request', req_id=r.id) }}" id="rrf-{{ r.id }}">
+              <div style="display:flex;gap:6px;flex-wrap:wrap;align-items:center">
+                <input name="admin_note" placeholder="Note (optional)" style="padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:12px;width:160px;font-family:inherit">
+                <button type="submit" name="action" value="approve" class="btn btn-sm btn-primary">✓ Approve</button>
+                <button type="submit" name="action" value="reject"  class="btn btn-sm btn-danger">✗ Reject</button>
+              </div>
+            </form>
+            {% endif %}
+          </td>
+          {% endif %}
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:60px 20px;color:var(--text-muted)">
+      <p>No return requests found.</p>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

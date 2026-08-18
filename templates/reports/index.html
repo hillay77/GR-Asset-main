@@ -1,0 +1,72 @@
+{% extends 'base.html' %}
+{% block title %}Reports — GR AMS{% endblock %}
+{% block page_title %}Asset Reports{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><h2>Asset Reports</h2><p>Full asset register and return log.</p></div>
+  <div class="no-print" style="display:flex;gap:10px;flex-wrap:wrap">
+    <a href="{{ url_for('reports.download_csv') }}" class="btn btn-outline">📄 Download CSV</a>
+    <a href="{{ url_for('reports.download_pdf') }}" class="btn btn-outline">📄 Download PDF</a>
+    <button onclick="window.print()" class="btn btn-accent">🖨 Print Report</button>
+  </div>
+</div>
+<div class="stats-grid" style="grid-template-columns:repeat(4,1fr)">
+  <div class="stat-card accent"><div class="label">Total Assets</div><div class="value">{{ assets|length }}</div></div>
+  <div class="stat-card success"><div class="label">Total Value</div><div class="value" style="font-size:16px">{{ total|currency }}</div></div>
+  <div class="stat-card primary"><div class="label">Assigned</div><div class="value">{{ assigned|length }}</div></div>
+  <div class="stat-card warn"><div class="label">Unassigned</div><div class="value">{{ unassigned|length }}</div></div>
+</div>
+<div class="card">
+  <div class="card-header"><h2>Full Asset Register</h2></div>
+  <div class="card-body">
+    <table>
+      <thead><tr><th>#</th><th>Asset Tag</th><th>Category</th><th>Name</th><th>Processor</th><th>Serial Number</th><th>Department</th><th>Date Purchased</th><th>Age</th><th>Assigned To</th><th>Condition</th><th>Vendor</th></tr></thead>
+      <tbody>
+        {% for a in assets %}
+        <tr>
+          <td>{{ loop.index }}</td>
+          <td><span class="asset-tag" style="font-size:11px">{{ a.tag }}</span></td>
+          <td>{{ a.category.name }}</td>
+          <td>{{ a.name }}</td>
+          <td>{{ a.processor or '—' }}</td>
+          <td>{{ a.serial_number or '—' }}</td>
+          <td>{{ a.assigned_user.department if a.assigned_user and a.assigned_user.department else '—' }}</td>
+          <td class="text-sm">{{ a.date_purchased|dateformat }}</td>
+          <td>{{ compute_age(a) }}</td>
+          <td>{{ a.assigned_user.name if a.assigned_user else '—' }}</td>
+          <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+          <td>{{ a.vendor.name if a.vendor else '—' }}</td>
+        </tr>
+        {% endfor %}
+        <tr style="border-top:2px solid var(--primary);font-weight:600">
+          <td colspan="6" style="text-align:right">TOTAL</td>
+          <td class="font-mono text-sm" style="text-align:right">{{ '{:,.0f}'.format(total) }}</td>
+          <td colspan="3"></td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>
+{% if returns %}
+<div class="card">
+  <div class="card-header"><h2>Return Log</h2></div>
+  <div class="card-body">
+    <table>
+      <thead><tr><th>Asset Tag</th><th>Asset Name</th><th>Returned By</th><th>Return Date</th><th>Condition</th><th>Notes</th></tr></thead>
+      <tbody>
+        {% for r in returns %}
+        <tr>
+          <td><span class="asset-tag" style="font-size:11px">{{ r.asset.tag }}</span></td>
+          <td>{{ r.asset.name }}</td>
+          <td>{{ r.user.name }}</td>
+          <td>{{ r.returned_at|dateformat }}</td>
+          <td><span class="badge badge-{{ r.condition_at_return }}">{{ (r.condition_at_return or '—')|title }}</span></td>
+          <td class="text-muted">{{ r.notes or '—' }}</td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endif %}
+{% endblock %}

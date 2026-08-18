@@ -1,0 +1,100 @@
+{% extends 'base.html' %}
+{% block title %}Asset Requests — GR AMS{% endblock %}
+{% block page_title %}Asset Requests{% endblock %}
+{% block content %}
+
+<div class="page-title">
+  <div class="page-title-text">
+    <h2>Asset Requests</h2>
+    <p>{% if current_user.role == 'user' %}Your requests for assets.{% else %}All staff asset requests — pending requests require your review.{% endif %}</p>
+  </div>
+  {% if current_user.role == 'user' %}
+  <a href="{{ url_for('requests.new_asset_request') }}" class="btn btn-primary">+ New Request</a>
+  {% endif %}
+</div>
+
+{% set pending = requests|selectattr('status','equalto','pending')|list %}
+{% if pending and current_user.role in ('admin','finance') %}
+<div class="alert alert-warning">
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" width="16" height="16"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+  {{ pending|length }} pending request{{ 's' if pending|length != 1 else '' }} waiting for your review.
+</div>
+{% endif %}
+
+<div class="card">
+  <div class="card-header"><h2>{{ 'My Requests' if current_user.role == 'user' else 'All Requests' }}</h2><span class="text-muted text-sm">{{ requests|length }} total</span></div>
+  <div class="card-body">
+    {% if requests %}
+    <table>
+      <thead>
+        <tr>
+          {% if current_user.role != 'user' %}<th>Requested By</th>{% endif %}
+          <th>Item Requested</th><th>Purpose</th><th>Duration</th><th>Dates Needed</th><th>Status</th><th>Requested On</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for r in requests %}
+        <tr>
+          {% if current_user.role != 'user' %}
+          <td>
+            <div class="flex items-center gap-2">
+              <div class="avatar" style="width:28px;height:28px;font-size:10px">{{ r.requested_by.initials }}</div>
+              <div><strong>{{ r.requested_by.name }}</strong><br><span class="text-muted text-sm">{{ r.requested_by.department or '—' }}</span></div>
+            </div>
+          </td>
+          {% endif %}
+          <td>
+            <strong>{{ r.item_requested }}</strong>
+            {% if r.category %}<br><span class="text-muted text-sm">Category: {{ r.category.name }}</span>{% endif %}
+            {% if r.assigned_asset %}<br><span class="asset-tag" style="font-size:11px">{{ r.assigned_asset.tag }}</span>{% endif %}
+          </td>
+          <td style="max-width:200px;white-space:normal">{{ r.purpose }}</td>
+          <td>
+            {% if r.duration_days %}
+              <strong>{{ r.duration_days }}</strong> day{{ 's' if r.duration_days != 1 else '' }}
+            {% else %}—{% endif %}
+          </td>
+          <td class="text-sm">
+            {% if r.date_needed_from %}{{ r.date_needed_from|dateformat }}{% endif %}
+            {% if r.date_needed_to %} → {{ r.date_needed_to|dateformat }}{% endif %}
+            {% if not r.date_needed_from %}—{% endif %}
+          </td>
+          <td>
+            {% if r.status == 'pending' %}
+              <span class="badge" style="background:#fef9c3;color:#854d0e">⏳ Pending</span>
+            {% elif r.status == 'approved' %}
+              <span class="badge badge-good">✓ Approved</span>
+            {% else %}
+              <span class="badge badge-poor">✗ Rejected</span>
+            {% endif %}
+            {% if r.admin_note %}<br><span class="text-muted text-sm" style="font-size:11px">Note: {{ r.admin_note }}</span>{% endif %}
+          </td>
+          <td class="text-muted text-sm">{{ r.requested_at.strftime('%d %b %Y') }}</td>
+          <td>
+            <div class="flex gap-2">
+              {% if r.status == 'pending' and current_user.role in ('admin','finance') %}
+              <a href="{{ url_for('requests.review_asset_request', req_id=r.id) }}" class="btn btn-sm btn-primary">Review</a>
+              {% endif %}
+              {% if r.status == 'pending' and r.requested_by_id == current_user.id %}
+              <form method="POST" action="{{ url_for('requests.cancel_asset_request', req_id=r.id) }}" onsubmit="return confirm('Cancel this request?')">
+                <button type="submit" class="btn btn-sm btn-danger">Cancel</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:60px 20px;color:var(--text-muted)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="margin:0 auto 16px;opacity:.3;display:block"><path d="M9 12h6m-6 4h6m2 5H7a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5.586a1 1 0 0 1 .707.293l5.414 5.414a1 1 0 0 1 .293.707V19a2 2 0 0 1-2 2z"/></svg>
+      <p>No asset requests yet.</p>
+      {% if current_user.role == 'user' %}
+      <a href="{{ url_for('requests.new_asset_request') }}" class="btn btn-primary" style="margin-top:16px">Make a Request</a>
+      {% endif %}
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

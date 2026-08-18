@@ -1,0 +1,99 @@
+{% extends 'base.html' %}
+{% block title %}Assets — GR AMS{% endblock %}
+{% block page_title %}{% if current_user.role == 'user' %}My Assets{% else %}All Assets{% endif %}{% endblock %}
+{% block content %}
+
+{% if current_user.role == 'user' %}
+<div class="alert alert-info no-print">Showing only assets assigned to you. Contact an administrator for full inventory access.</div>
+{% endif %}
+
+<div class="search-bar no-print">
+  <form method="GET" class="flex gap-2 flex-1" style="flex-wrap:wrap">
+    <div class="search-wrap">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+      <input name="q" value="{{ q }}" placeholder="Search tag, name, serial…">
+    </div>
+    {% if current_user.role != 'user' %}
+    <select name="project_id" class="filter-sel" onchange="this.form.submit()">
+      <option value="">All Countries</option>
+      {% for p in projects %}
+      <option value="{{ p.id }}" {% if proj_id == p.id %}selected{% endif %}>{{ p.name }}</option>
+      {% endfor %}
+    </select>
+    {% endif %}
+    <select name="condition" class="filter-sel" onchange="this.form.submit()">
+      <option value="">All Conditions</option>
+      {% for c in ['new','good','fair','poor'] %}
+      <option value="{{ c }}" {% if cond == c %}selected{% endif %}>{{ c|title }}</option>
+      {% endfor %}
+    </select>
+    <button type="submit" class="btn btn-outline">Filter</button>
+    {% if q or proj_id or cond %}
+    <a href="{{ url_for('assets.index') }}" class="btn btn-outline">Clear</a>
+    {% endif %}
+  </form>
+  <div class="flex gap-2">
+    <a href="{{ url_for('assets.download_csv') }}" class="btn btn-outline">📄 Download CSV</a>
+    <a href="{{ url_for('assets.download_pdf') }}" class="btn btn-outline">📄 Download PDF</a>
+    {% if current_user.role == 'admin' %}
+    <a href="{{ url_for('assets.new') }}" class="btn btn-primary">+ Register Asset</a>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card">
+  <div class="card-header"><h2>{% if current_user.role == 'user' %}My Assets{% else %}Asset Register{% endif %}</h2><span class="text-muted text-sm">{{ assets|length }} asset(s)</span></div>
+  <div class="card-body">
+    {% if assets %}
+    <table>
+      <thead>
+        <tr>
+          <th>Asset Tag</th>
+          <th>Name / Category</th>
+          <th>Country</th>
+          {% if current_user.role != 'user' %}<th>Vendor</th><th>Price</th>{% endif %}
+          <th>Date Purchased</th>
+          <th>Condition</th>
+          {% if current_user.role != 'user' %}<th>Assigned To</th>{% endif %}
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for a in assets %}
+        <tr>
+          <td><span class="asset-tag">{{ a.tag }}</span></td>
+          <td><strong>{{ a.name }}</strong><br><span class="text-muted text-sm">{{ a.category.name }}{% if a.serial_number %} · {{ a.serial_number }}{% endif %}</span></td>
+          <td>{{ a.project.name }}</td>
+          {% if current_user.role != 'user' %}
+          <td>{{ a.vendor.name if a.vendor else '—' }}</td>
+          <td class="font-mono text-sm">{{ a.price|currency }}</td>
+          {% endif %}
+          <td class="text-muted text-sm">{{ a.date_purchased|dateformat }}</td>
+          <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+          {% if current_user.role != 'user' %}
+          <td>{{ a.assigned_user.name if a.assigned_user else '<span class="text-muted">—</span>'|safe }}</td>
+          {% endif %}
+          <td>
+            <div class="flex gap-2">
+              {% if current_user.role == 'user' %}
+              <a href="{{ url_for('assets.print_user_form', user_id=current_user.id) }}" class="btn btn-sm btn-outline">🖨</a>
+              <a href="{{ url_for('requests.new_return_request', asset_id=a.id) }}" class="btn btn-sm btn-warn">↩ Return</a>
+              {% else %}
+              <a href="{{ url_for('assets.print_user_form', user_id=a.assigned_to_id) if a.assigned_to_id else '#' }}" class="btn btn-sm btn-outline" {% if not a.assigned_to_id %}style="opacity:.4;pointer-events:none"{% endif %}>🖨</a>
+              <a href="{{ url_for('assets.edit', asset_id=a.id) }}" class="btn btn-sm btn-outline">Edit</a>
+              <form method="POST" action="{{ url_for('assets.delete', asset_id=a.id) }}" style="display:inline" onsubmit="return confirm('Delete this asset?')">
+                <button type="submit" class="btn btn-sm btn-danger">Del</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+    {% else %}
+    <div style="text-align:center;padding:60px 20px;color:var(--text-muted)"><p>No assets found.</p></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

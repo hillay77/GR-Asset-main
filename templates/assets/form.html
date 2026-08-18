@@ -1,0 +1,119 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — GR AMS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><p>{% if asset %}Edit asset details below.{% else %}Fill in all required fields to register a new asset.{% endif %}</p></div>
+  <a href="{{ url_for('assets.index') }}" class="btn btn-outline">← Back to Assets</a>
+</div>
+
+<form method="POST">
+  <div class="card" style="max-width:900px">
+    <div class="card-header"><h2>Asset Details</h2></div>
+    <div style="padding:24px">
+      <div class="form-grid form-grid-2">
+        <div class="form-group"><label>Asset Name *</label><input name="name" value="{{ asset.name if asset else '' }}" placeholder="e.g. Dell Latitude 5420" required></div>
+        <div class="form-group"><label>Serial Number</label><input name="serial_number" value="{{ asset.serial_number if asset else '' }}" placeholder="Manufacturer serial"></div>
+        <div class="form-group">
+          <label>Category *</label>
+          <select name="category_id" required>
+            <option value="">Select category</option>
+            {% for c in categories %}<option value="{{ c.id }}" {% if asset and asset.category_id == c.id %}selected{% endif %}>{{ c.name }} ({{ c.code }})</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Country *</label>
+          <select name="project_id" required>
+            <option value="">Select country</option>
+            {% for p in projects %}<option value="{{ p.id }}" {% if asset and asset.project_id == p.id %}selected{% endif %}>{{ p.name }} ({{ p.code }})</option>{% endfor %}
+          </select>
+          {% if not asset %}<span style="font-size:11px;color:var(--text-muted);display:block;margin-top:4px">Sets the country code in the asset tag (e.g. GR-UG-LP-0001).</span>{% endif %}
+        </div>
+        <div class="form-group">
+          <label>Processor</label>
+          <input name="processor" value="{{ asset.processor if asset else '' }}" placeholder="e.g. Intel Core i5-10210U">
+        </div>
+        <div class="form-group">
+          <label>Vendor</label>
+          <select name="vendor_id">
+            <option value="">Select vendor</option>
+            {% for v in vendors %}<option value="{{ v.id }}" {% if asset and asset.vendor_id == v.id %}selected{% endif %}>{{ v.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>Age (years)</label>
+          <input name="age_years" type="number" min="0" value="{{ asset.age_years if asset and asset.age_years is not none else '' }}" placeholder="optional">
+        </div>
+        <div class="form-group">
+          <label>Age (months)</label>
+          <input name="age_months" type="number" min="0" max="11" value="{{ asset.age_months if asset and asset.age_months is not none else '' }}" placeholder="optional">
+        </div>
+        <div class="form-group"><label>Purchase Price (USD)</label><input name="price" type="number" value="{{ asset.price if asset else '' }}" placeholder="0"></div>
+        <div class="form-group"><label>Date Purchased</label><input name="date_purchased" type="date" value="{{ asset.date_purchased.isoformat() if asset and asset.date_purchased else '' }}"></div>
+        <div class="form-group">
+          <label>Condition</label>
+          <select name="condition">
+            {% for c in ['new','good','fair','poor'] %}<option value="{{ c }}" {% if asset and asset.condition == c %}selected{% elif not asset and c == 'good' %}selected{% endif %}>{{ c|title }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group"><label>Location</label><input name="location" value="{{ asset.location if asset else '' }}" placeholder="e.g. Kampala Office"></div>
+        <div class="form-group">
+          <label>Assign To</label>
+          <select name="assigned_to_id">
+            <option value="">Unassigned</option>
+            {% for u in users %}<option value="{{ u.id }}" {% if asset and asset.assigned_to_id == u.id %}selected{% endif %}>{{ u.name }} ({{ u.department or '—' }})</option>{% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="form-group mt-2"><label>Description / Specs</label><textarea name="description" placeholder="Additional details, specs…">{{ asset.description if asset else '' }}</textarea></div>
+      {% if asset %}
+      <div class="divider"></div>
+      <div class="flex items-center gap-2"><span class="text-muted text-sm">Asset Tag:</span><span class="asset-tag">{{ asset.tag }}</span></div>
+      {% endif %}
+    </div>
+    <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+      <a href="{{ url_for('assets.index') }}" class="btn btn-outline">Cancel</a>
+      <button type="submit" class="btn btn-primary">{{ 'Save Changes' if asset else 'Register Asset' }}</button>
+    </div>
+  </div>
+</form>
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+  function computeAndFill() {
+    const dp = document.querySelector('input[name="date_purchased"]');
+    const yIn = document.querySelector('input[name="age_years"]');
+    const mIn = document.querySelector('input[name="age_months"]');
+    if (!dp) return;
+    const val = dp.value;
+    if (!val) {
+      if (yIn) yIn.value = '';
+      if (mIn) mIn.value = '';
+      return;
+    }
+    const d = new Date(val + 'T00:00:00');
+    const today = new Date();
+    let years = today.getFullYear() - d.getFullYear();
+    let months = today.getMonth() - d.getMonth();
+    if (today.getDate() < d.getDate()) {
+      months -= 1;
+    }
+    if (months < 0) {
+      years -= 1;
+      months += 12;
+    }
+    if (years < 0) { years = 0; months = 0; }
+    if (yIn) yIn.value = years;
+    if (mIn) mIn.value = months;
+  }
+
+  const dpEl = document.querySelector('input[name="date_purchased"]');
+  if (dpEl) {
+    dpEl.addEventListener('change', computeAndFill);
+    dpEl.addEventListener('input', computeAndFill);
+    // compute on load if a date exists
+    computeAndFill();
+  }
+});
+</script>
+
+{% endblock %}

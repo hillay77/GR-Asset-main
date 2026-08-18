@@ -1,0 +1,93 @@
+{% extends 'base.html' %}
+{% block title %}Vendors — GR AMS{% endblock %}
+{% block page_title %}Vendors{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><p>Suppliers and vendors of assets.</p></div>
+  <button onclick="document.getElementById('add-v-modal').style.display='flex'" class="btn btn-primary">+ Add Vendor</button>
+</div>
+<div class="card">
+  <div class="card-body">
+    <table>
+      <thead><tr><th>Vendor Name</th><th>Contact</th><th>Email</th><th>Address</th><th>Assets Supplied</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for v in vendors %}
+        <tr>
+          <td><strong>{{ v.name }}</strong></td>
+          <td>{{ v.contact or '—' }}</td>
+          <td>{{ v.email or '—' }}</td>
+          <td>{{ v.address or '—' }}</td>
+          <td>{{ v.assets.count() }}</td>
+          <td>
+            <div class="flex gap-2">
+              <button onclick="editV({{ v.id }},'{{ v.name }}','{{ v.contact or '' }}','{{ v.email or '' }}','{{ v.address or '' }}')" class="btn btn-sm btn-outline">Edit</button>
+              <form method="POST" action="{{ url_for('admin.vendor_delete', vendor_id=v.id) }}" onsubmit="return confirm('Delete this vendor?')">
+                <button type="submit" class="btn btn-sm btn-danger">Del</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add modal -->
+<div id="add-v-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Add Vendor</h3>
+      <button onclick="document.getElementById('add-v-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin.vendor_new') }}">
+      <div style="padding:20px 24px">
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>Vendor Name *</label><input name="name" placeholder="Company name" required></div>
+          <div class="form-group"><label>Contact Phone</label><input name="contact" placeholder="+256…"></div>
+          <div class="form-group"><label>Email</label><input name="email" type="email" placeholder="info@vendor.com"></div>
+          <div class="form-group"><label>Address</label><input name="address" placeholder="City / address"></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('add-v-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Vendor</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div id="edit-v-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Edit Vendor</h3>
+      <button onclick="document.getElementById('edit-v-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer">×</button>
+    </div>
+    <form id="edit-v-form" method="POST">
+      <div style="padding:20px 24px">
+        <div class="form-grid form-grid-2">
+          <div class="form-group"><label>Vendor Name *</label><input id="ev-name" name="name" required></div>
+          <div class="form-group"><label>Contact Phone</label><input id="ev-contact" name="contact"></div>
+          <div class="form-group"><label>Email</label><input id="ev-email" name="email" type="email"></div>
+          <div class="form-group"><label>Address</label><input id="ev-address" name="address"></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('edit-v-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function editV(id,name,contact,email,address){
+  document.getElementById('edit-v-form').action='/admin/vendors/'+id+'/edit';
+  document.getElementById('ev-name').value=name;
+  document.getElementById('ev-contact').value=contact;
+  document.getElementById('ev-email').value=email;
+  document.getElementById('ev-address').value=address;
+  document.getElementById('edit-v-modal').style.display='flex';
+}
+</script>
+{% endblock %}

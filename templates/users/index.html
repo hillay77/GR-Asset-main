@@ -1,0 +1,91 @@
+{% extends 'base.html' %}
+{% block title %}Users — GR AMS{% endblock %}
+{% block page_title %}Register Users{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><h2>User Accounts</h2><p>Manage system users and access levels.</p></div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <a href="{{ url_for('users.roles') }}" class="btn btn-primary">Roles</a>
+    <a href="{{ url_for('users.new') }}" class="btn btn-primary">+ Register User</a>
+  </div>
+</div>
+{% if import_summary %}
+<div class="card" style="margin-top:20px;border-left:4px solid var(--success);">
+  <div class="card-body">
+    <h3>Upload Result</h3>
+    <p>Imported <strong>{{ import_summary.imported }}</strong> user(s); skipped <strong>{{ import_summary.skipped }}</strong> row(s).</p>
+    {% if import_summary.errors %}
+    <div style="margin-top:12px;padding:16px;background:#fff4e5;border:1px solid #f1c40f;border-radius:8px">
+      <strong>Import warnings / errors:</strong>
+      <ul style="margin:8px 0 0 18px;color:#333">
+        {% for err in import_summary.errors %}
+        <li>{{ err }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+    {% endif %}
+  </div>
+</div>
+{% endif %}
+<div class="card" style="margin-top:20px">
+  <div class="card-header"><h2>Upload Users from Excel</h2></div>
+  <div class="card-body">
+    <p>Upload an Excel file with a header row containing the columns below.</p>
+    <div style="overflow-x:auto;margin-bottom:16px">
+      <table>
+        <thead><tr><th>Column</th><th>Required</th><th>Notes</th></tr></thead>
+        <tbody>
+          <tr><td class="font-mono">NAME</td><td>Yes</td><td>Full user name.</td></tr>
+          <tr><td class="font-mono">USERNAME</td><td>Yes</td><td>Login username; must be unique.</td></tr>
+          <tr><td class="font-mono">EMAIL</td><td>No</td><td>User email address.</td></tr>
+          <tr><td class="font-mono">DEPARTMENT</td><td>No</td><td>Optional department or team.</td></tr>
+          <tr><td class="font-mono">ROLE</td><td>No</td><td>Role key or label (e.g. admin, finance, user). Defaults to user.</td></tr>
+        </tbody>
+      </table>
+    </div>
+    <div style="display:flex;gap:12px;flex-wrap:wrap;align-items:center;margin-bottom:18px">
+      <a href="{{ url_for('users.import_template') }}" class="btn btn-outline">Download Sample Template</a>
+      <div style="font-size:12px;color:var(--text-muted);flex:1;min-width:240px">
+        The uploader requires <strong>.xlsx</strong> and uses <strong>openpyxl</strong>. Existing usernames are skipped; imported users get a generated password.
+      </div>
+    </div>
+    <form action="{{ url_for('users.import_users') }}" method="POST" enctype="multipart/form-data">
+      <div class="form-group" style="margin-bottom:16px">
+        <label>Select .xlsx file</label>
+        <input type="file" name="file" accept=".xlsx" required>
+      </div>
+      <button type="submit" class="btn btn-primary">Upload and Import</button>
+    </form>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <table>
+      <thead><tr><th>Name</th><th>Username</th><th>Email</th><th>Department</th><th>Role</th><th>Status</th><th>Joined</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for u in users %}
+        <tr>
+          <td><div class="flex items-center gap-2"><div class="avatar" style="width:28px;height:28px;font-size:10px">{{ u.initials }}</div><strong>{{ u.name }}</strong></div></td>
+          <td class="font-mono text-sm">{{ u.username }}</td>
+          <td class="text-muted">{{ u.email or '—' }}</td>
+          <td>{{ u.department or '—' }}</td>
+          <td><span class="badge badge-{{ u.role }}">{{ u.role_label }}</span></td>
+          <td><span class="badge badge-{{ u.status }}">{{ u.status|title }}</span></td>
+          <td class="text-muted text-sm">{{ u.created_at|dateformat }}</td>
+          <td>
+            <div class="flex gap-2">
+              <a href="{{ url_for('users.edit', user_id=u.id) }}" class="btn btn-sm btn-outline">Edit</a>
+              {% if u.id != current_user.id %}
+              <form method="POST" action="{{ url_for('users.delete', user_id=u.id) }}" onsubmit="return confirm('Delete this user?')">
+                <button type="submit" class="btn btn-sm btn-danger">Del</button>
+              </form>
+              {% endif %}
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+{% endblock %}

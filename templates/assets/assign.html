@@ -1,0 +1,110 @@
+{% extends 'base.html' %}
+{% block title %}Assign Assets — GR AMS{% endblock %}
+{% block page_title %}Assign Assets to Users{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><p>Select a staff user to manage their asset assignments.</p></div>
+</div>
+
+<div style="display:grid;grid-template-columns:260px 1fr;gap:20px;align-items:start">
+  <!-- User list -->
+  <div class="card" style="position:sticky;top:80px">
+    <div class="card-header"><h2>Staff Users</h2></div>
+    <div style="padding:6px 0">
+      {% for u in users %}
+      {% set cnt = u.assigned_assets.filter_by(status='active').count() %}
+      <a href="{{ url_for('assets.assign_user', user_id=u.id) }}"
+         style="display:flex;align-items:center;gap:10px;padding:10px 16px;border-left:3px solid {% if selected_user and selected_user.id == u.id %}var(--accent){% else %}transparent{% endif %};background:{% if selected_user and selected_user.id == u.id %}rgba(26,58,92,.06){% else %}transparent{% endif %};transition:all .15s">
+        <div class="avatar" style="width:34px;height:34px;font-size:12px">{{ u.initials }}</div>
+        <div style="flex:1;min-width:0">
+          <div style="font-size:13px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ u.name }}</div>
+          <div class="text-muted text-sm">{{ u.department or '—' }} · {{ cnt }} asset{{ 's' if cnt != 1 else '' }}</div>
+        </div>
+      </a>
+      {% else %}
+      <p style="padding:16px;color:var(--text-muted);font-size:13px">No staff users found.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- Assignment panel -->
+  <div>
+    {% if selected_user %}
+    <!-- Assigned assets -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div class="avatar" style="width:32px;height:32px;font-size:12px">{{ selected_user.initials }}</div>
+        <h2>{{ selected_user.name }} <span style="font-weight:400;color:var(--text-muted);font-size:13px">— {{ selected_user.department or '—' }}</span></h2>
+        <span class="text-muted text-sm">{{ my_assets|length }} assigned</span>
+        <a href="{{ url_for('assets.print_user_form', user_id=selected_user.id) }}" class="btn btn-sm btn-outline no-print">🖨 Print All Forms</a>
+      </div>
+      <div class="card-body">
+        {% if my_assets %}
+        <table>
+          <thead><tr><th>Asset Tag</th><th>Name</th><th>Condition</th><th>Assigned On</th><th>Actions</th></tr></thead>
+          <tbody>
+            {% for a in my_assets %}
+            <tr>
+              <td><span class="asset-tag">{{ a.tag }}</span></td>
+              <td><strong>{{ a.name }}</strong><br><span class="text-muted text-sm">{{ a.category.name if a.category else '—' }}</span></td>
+              <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+              <td class="text-muted text-sm">{{ a.assigned_on|dateformat }}</td>
+              <td>
+                <div class="flex gap-2">
+                  <a href="{{ url_for('assets.print_user_form', user_id=selected_user.id) }}" class="btn btn-sm btn-outline">🖨</a>
+                  <form method="POST" action="{{ url_for('assets.unassign', asset_id=a.id) }}" onsubmit="return confirm('Unassign this asset?')">
+                    <button type="submit" class="btn btn-sm btn-danger">Unassign</button>
+                  </form>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted)"><p>No assets assigned to this user.</p></div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Available assets -->
+    <div class="card">
+      <div class="card-header"><h2>Assign an Asset to {{ selected_user.name.split()[0] }}</h2><span class="text-muted text-sm">{{ available|length }} available</span></div>
+      <div class="card-body">
+        {% if available %}
+        <table>
+          <thead><tr><th>Asset Tag</th><th>Name</th><th>Country</th><th>Condition</th><th>Price</th><th>Action</th></tr></thead>
+          <tbody>
+            {% for a in available %}
+            <tr>
+              <td><span class="asset-tag">{{ a.tag }}</span></td>
+              <td><strong>{{ a.name }}</strong><br><span class="text-muted text-sm">{{ a.category.name if a.category else '—' }}</span></td>
+              <td>{{ a.project.name if a.project else '—' }}</td>
+              <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+              <td class="font-mono text-sm">{{ a.price|currency }}</td>
+              <td>
+                <form method="POST" action="{{ url_for('assets.do_assign', user_id=selected_user.id) }}">
+                  <input type="hidden" name="asset_id" value="{{ a.id }}">
+                  <button type="submit" class="btn btn-sm btn-primary">Assign →</button>
+                </form>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted)">
+          <p>All assets are currently assigned. <a href="{{ url_for('assets.new') }}" style="color:var(--primary)">Register a new asset</a> to assign it.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+    {% else %}
+    <div class="card"><div class="card-body" style="text-align:center;padding:80px 20px;color:var(--text-muted)">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" width="48" height="48" style="margin:0 auto 16px;opacity:.3;display:block"><polyline points="17 1 21 5 17 9"/><path d="M3 11V9a4 4 0 0 1 4-4h14"/><polyline points="7 23 3 19 7 15"/><path d="M21 13v2a4 4 0 0 1-4 4H3"/></svg>
+      <p>Select a user on the left to manage their asset assignments.</p>
+    </div></div>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,89 @@
+{% extends 'base.html' %}
+{% block title %}Categories — GR AMS{% endblock %}
+{% block page_title %}Asset Categories{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><p>Manage asset types and their tag codes.</p></div>
+  <button onclick="document.getElementById('add-cat-modal').style.display='flex'" class="btn btn-primary">+ Add Category</button>
+</div>
+<div class="card">
+  <div class="card-body">
+    <table>
+      <thead><tr><th>Category Name</th><th>Code</th><th>Description</th><th>Assets</th><th>Actions</th></tr></thead>
+      <tbody>
+        {% for c in cats %}
+        <tr>
+          <td><strong>{{ c.name }}</strong></td>
+          <td><span class="font-mono" style="background:var(--bg);padding:2px 8px;border-radius:4px;font-size:12px">{{ c.code }}</span></td>
+          <td class="text-muted">{{ c.description or '—' }}</td>
+          <td>{{ c.assets.count() }}</td>
+          <td>
+            <div class="flex gap-2">
+              <button onclick="editCat({{ c.id }},'{{ c.name }}','{{ c.code }}','{{ c.description or '' }}')" class="btn btn-sm btn-outline">Edit</button>
+              <form method="POST" action="{{ url_for('admin.category_delete', cat_id=c.id) }}" onsubmit="return confirm('Delete this category?')">
+                <button type="submit" class="btn btn-sm btn-danger">Del</button>
+              </form>
+            </div>
+          </td>
+        </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<!-- Add modal -->
+<div id="add-cat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:480px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Add Category</h3>
+      <button onclick="document.getElementById('add-cat-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('admin.category_new') }}">
+      <div style="padding:20px 24px">
+        <div class="form-grid">
+          <div class="form-group"><label>Category Name *</label><input name="name" placeholder="e.g. Laptop" required></div>
+          <div class="form-group"><label>Code *</label><input name="code" placeholder="e.g. LP" style="text-transform:uppercase" oninput="this.value=this.value.toUpperCase()" required></div>
+          <div class="form-group"><label>Description</label><input name="description" placeholder="Brief description"></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('add-cat-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Category</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Edit modal -->
+<div id="edit-cat-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:480px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Edit Category</h3>
+      <button onclick="document.getElementById('edit-cat-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+    <form id="edit-cat-form" method="POST">
+      <div style="padding:20px 24px">
+        <div class="form-grid">
+          <div class="form-group"><label>Category Name *</label><input id="ec-name" name="name" required></div>
+          <div class="form-group"><label>Code *</label><input id="ec-code" name="code" oninput="this.value=this.value.toUpperCase()" required></div>
+          <div class="form-group"><label>Description</label><input id="ec-desc" name="description"></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('edit-cat-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+<script>
+function editCat(id, name, code, desc) {
+  document.getElementById('edit-cat-form').action = '/admin/categories/' + id + '/edit';
+  document.getElementById('ec-name').value = name;
+  document.getElementById('ec-code').value = code;
+  document.getElementById('ec-desc').value = desc;
+  document.getElementById('edit-cat-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}

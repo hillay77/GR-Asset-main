@@ -1,0 +1,225 @@
+{% extends 'base.html' %}
+{% block title %}Dashboard — GR AMS{% endblock %}
+{% block page_title %}Dashboard{% endblock %}
+{% block content %}
+
+<!-- Header Banner -->
+<div style="background:var(--primary);border-radius:var(--radius);padding:20px 24px;margin-bottom:24px;display:flex;align-items:center;gap:18px">
+  <img src="{{ url_for('static', filename='img/GR.jpg') }}" alt="GR Logo"
+       style="width:60px;height:60px;object-fit:contain;border-radius:8px;background:#fff;padding:4px;flex-shrink:0"
+       onerror="this.style.display='none'">
+  <div style="color:#fff">
+    <div style="font-size:20px;font-weight:700">GR Asset Management System</div>
+    <div style="font-size:13px;opacity:.7;margin-top:2px">Welcome back, {{ current_user.name }} — {{ now.strftime('%A, %d %B %Y') }}</div>
+  </div>
+</div>
+
+<!-- Stat cards -->
+<div class="stats-grid">
+  <div class="stat-card accent"><div class="label">Total Assets</div><div class="value">{{ total_assets }}</div><div class="sub">{{ assigned }} assigned · {{ unassigned }} free</div></div>
+  <div class="stat-card success"><div class="label">Total Value</div><div class="value" style="font-size:18px">{{ total_value|currency }}</div><div class="sub">Active inventory</div></div>
+  <div class="stat-card primary"><div class="label">Active Countries</div><div class="value">{{ active_projects }}</div><div class="sub">Active country codes</div></div>
+  <div class="stat-card warn"><div class="label">Staff Users</div><div class="value">{{ total_users }}</div><div class="sub">Active accounts</div></div>
+</div>
+
+<!-- Charts row — compact 4-column layout -->
+<div style="display:grid;grid-template-columns:1fr 1fr 1fr 2fr;gap:16px;margin-bottom:20px">
+
+  <!-- Condition donut -->
+  <div class="card">
+    <div class="card-header" style="padding:10px 16px"><h2 style="font-size:12px">Condition</h2></div>
+    <div style="padding:12px 16px;display:flex;flex-direction:column;align-items:center">
+      <div style="width:110px;height:110px"><canvas id="conditionChart" width="110" height="110"></canvas></div>
+      <div id="conditionLegend" style="margin-top:10px;width:100%"></div>
+    </div>
+  </div>
+
+  <!-- Assigned vs Unassigned donut -->
+  <div class="card">
+    <div class="card-header" style="padding:10px 16px"><h2 style="font-size:12px">Assignment</h2></div>
+    <div style="padding:12px 16px;display:flex;flex-direction:column;align-items:center">
+      <div style="width:110px;height:110px"><canvas id="assignChart" width="110" height="110"></canvas></div>
+      <div id="assignLegend" style="margin-top:10px;width:100%"></div>
+    </div>
+  </div>
+
+  <!-- Category donut -->
+  <div class="card">
+    <div class="card-header" style="padding:10px 16px"><h2 style="font-size:12px">By Category</h2></div>
+    <div style="padding:12px 16px;display:flex;flex-direction:column;align-items:center">
+      <div style="width:110px;height:110px"><canvas id="categoryChart" width="110" height="110"></canvas></div>
+      <div id="categoryLegend" style="margin-top:10px;width:100%"></div>
+    </div>
+  </div>
+
+  <!-- Bar chart — value by country -->
+  <div class="card">
+    <div class="card-header" style="padding:10px 16px"><h2 style="font-size:12px">Value by Country</h2></div>
+    <div style="padding:10px 16px;height:200px;position:relative">
+      <canvas id="projectChart"></canvas>
+    </div>
+  </div>
+
+</div>
+
+<!-- Recent assets + top users -->
+<div style="display:grid;grid-template-columns:2fr 1fr;gap:20px">
+
+  <div class="card">
+    <div class="card-header"><h2>Recent Assets</h2><a href="{{ url_for('assets.index') }}" class="btn btn-sm btn-outline">View all</a></div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>Asset Tag</th><th>Name</th><th>Country</th><th>Assigned To</th><th>Condition</th></tr></thead>
+        <tbody>
+          {% for a in recent_assets %}
+          <tr>
+            <td><span class="asset-tag">{{ a.tag }}</span></td>
+            <td><strong>{{ a.name }}</strong><br><span class="text-muted text-sm">{{ a.category.name if a.category else '—' }}</span></td>
+            <td>{{ a.project.name if a.project else '—' }}</td>
+            <td>{{ a.assigned_user.name if a.assigned_user else '<span class="text-muted">—</span>'|safe }}</td>
+            <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div class="card">
+    <div class="card-header"><h2>Top Asset Holders</h2></div>
+    <div class="card-body">
+      <table>
+        <thead><tr><th>User</th><th>Assets</th><th>Value</th></tr></thead>
+        <tbody>
+          {% for name, count, total in by_user %}
+          <tr>
+            <td><strong>{{ name.split()[0] }}</strong></td>
+            <td>{{ count }}</td>
+            <td class="font-mono text-sm">{{ (total or 0)|currency }}</td>
+          </tr>
+          {% else %}
+          <tr><td colspan="3" class="text-muted" style="text-align:center;padding:20px">No assignments yet</td></tr>
+          {% endfor %}
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+</div>
+
+<!-- Chart.js via CDN -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script>
+// ── Data from Flask ─────────────────────────────────────
+const conditionData = {
+  labels: [{% for c,n in by_condition %}"{{ c|title }}"{% if not loop.last %},{% endif %}{% endfor %}],
+  counts: [{% for c,n in by_condition %}{{ n }}{% if not loop.last %},{% endif %}{% endfor %}]
+};
+const categoryData = {
+  labels: [{% for name,count,total in by_category %}"{{ name }}"{% if not loop.last %},{% endif %}{% endfor %}],
+  counts: [{% for name,count,total in by_category %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}]
+};
+const projectData = {
+  labels: [{% for proj,count,total in by_project %}"{{ proj.name }}"{% if not loop.last %},{% endif %}{% endfor %}],
+  values: [{% for proj,count,total in by_project %}{{ (total or 0)|float }}{% if not loop.last %},{% endif %}{% endfor %}],
+  counts: [{% for proj,count,total in by_project %}{{ count }}{% if not loop.last %},{% endif %}{% endfor %}]
+};
+const assignData = {
+  labels: ['Assigned', 'Unassigned'],
+  counts: [{{ assigned }}, {{ unassigned }}]
+};
+
+// ── Colour palette ───────────────────────────────────────
+const COLORS = ['#1a3a5c','#e8840a','#1a7a4a','#b83232','#2d5f8a','#f5a83d','#5b21b6','#9d174d','#075985','#166534'];
+const COND_COLORS = { 'New':'#1e40af','Good':'#166534','Fair':'#854d0e','Poor':'#991b1b' };
+
+function condColor(label) { return COND_COLORS[label] || COLORS[0]; }
+
+// ── Legend helper ────────────────────────────────────────
+function makeLegend(containerId, labels, colors, counts) {
+  const el = document.getElementById(containerId);
+  const total = counts.reduce((a,b) => a+b, 0);
+  el.innerHTML = labels.map((l,i) => `
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:2px 0;font-size:11px">
+      <div style="display:flex;align-items:center;gap:5px">
+        <div style="width:8px;height:8px;border-radius:50%;background:${colors[i]};flex-shrink:0"></div>
+        <span>${l}</span>
+      </div>
+      <span style="font-weight:600;color:#374151">${counts[i]} <span style="color:#9ca3af;font-weight:400">(${total?Math.round(counts[i]/total*100):0}%)</span></span>
+    </div>`).join('');
+}
+
+// ── Donut chart helper ───────────────────────────────────
+function makeDonut(id, labels, counts, colors) {
+  new Chart(document.getElementById(id), {
+    type: 'doughnut',
+    data: {
+      labels: labels,
+      datasets: [{ data: counts, backgroundColor: colors, borderWidth: 2, borderColor: '#fff' }]
+    },
+    options: {
+      responsive: false,
+      maintainAspectRatio: false,
+      cutout: '70%',
+      plugins: { legend: { display: false }, tooltip: {
+        callbacks: { label: ctx => ` ${ctx.label}: ${ctx.raw}` }
+      }},
+      animation: { animateRotate: true, duration: 600 }
+    }
+  });
+}
+
+// ── Condition chart ──────────────────────────────────────
+const condColors = conditionData.labels.map(condColor);
+makeDonut('conditionChart', conditionData.labels, conditionData.counts, condColors);
+makeLegend('conditionLegend', conditionData.labels, condColors, conditionData.counts);
+
+// ── Assignment chart ─────────────────────────────────────
+makeDonut('assignChart', assignData.labels, assignData.counts, ['#1a3a5c','#d8dce3']);
+makeLegend('assignLegend', assignData.labels, ['#1a3a5c','#d8dce3'], assignData.counts);
+
+// ── Category chart ───────────────────────────────────────
+const catColors = categoryData.labels.map((_,i) => COLORS[i % COLORS.length]);
+makeDonut('categoryChart', categoryData.labels, categoryData.counts, catColors);
+makeLegend('categoryLegend', categoryData.labels, catColors, categoryData.counts);
+
+// ── Project bar chart ────────────────────────────────────
+new Chart(document.getElementById('projectChart'), {
+  type: 'bar',
+  data: {
+    labels: projectData.labels,
+    datasets: [{
+      label: 'Total Value (USD)',
+      data: projectData.values,
+      backgroundColor: projectData.labels.map((_,i) => COLORS[i % COLORS.length]),
+      borderRadius: 4,
+      borderSkipped: false,
+      barThickness: 28,
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { display: false },
+      tooltip: {
+        callbacks: {
+          label: ctx => ` USD ${ctx.raw.toLocaleString()} (${projectData.counts[ctx.dataIndex]} assets)`
+        }
+      }
+    },
+    scales: {
+      y: {
+        beginAtZero: true,
+        ticks: {
+          font: { size: 11 },
+          callback: v => v >= 1000000 ? (v/1000000).toFixed(1)+'M' : v >= 1000 ? (v/1000).toFixed(0)+'K' : v
+        },
+        grid: { color: '#f0f2f5' }
+      },
+      x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+    }
+  }
+});
+</script>
+{% endblock %}

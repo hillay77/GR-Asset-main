@@ -1,0 +1,106 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sign In — GR AMS</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:wght@400;500;600;700&display=swap');
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'DM Sans',sans-serif;background:#0c2d17;min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px}
+.box{background:#f7faf5;border-radius:16px;padding:40px;width:100%;max-width:420px;box-shadow:0 24px 80px rgba(0,0,0,.22)}
+.logo{display:flex;align-items:center;gap:12px;margin-bottom:32px}
+.logo-img{width:56px;height:56px;object-fit:contain;border-radius:12px;border:1px solid #c9e6d0;padding:4px;background:#fff}
+.logo h1{font-size:18px;font-weight:700;color:#0d3d23;line-height:1.2}
+.logo p{font-size:12px;color:#5f7d63}
+h2{font-size:22px;font-weight:600;margin-bottom:6px;color:#1a2230}
+.sub{color:#6b7280;font-size:13px;margin-bottom:28px}
+.fg{margin-bottom:16px}
+.fg label{display:block;font-size:11px;font-weight:600;color:#6b7280;text-transform:uppercase;letter-spacing:.4px;margin-bottom:6px}
+.fg input{width:100%;padding:11px 14px;border:1.5px solid #d8dce3;border-radius:8px;font-family:inherit;font-size:14px;outline:none;transition:border-color .15s;background:#fff;color:#1a2230}
+.fg input::placeholder{color:#9ca3af}
+.fg input:focus{border-color:#0d3d23;box-shadow:0 0 0 3px rgba(13,61,35,.12)}
+.pw-wrap{position:relative}
+.pw-wrap input{padding-right:44px}
+.pw-toggle{position:absolute;right:10px;top:50%;transform:translateY(-50%);background:none;border:none;padding:4px;cursor:pointer;color:#9ca3af;display:none;align-items:center;justify-content:center;border-radius:4px;transition:color .15s}
+.pw-toggle:hover{color:#0d3d23}
+.pw-toggle.visible{display:flex}
+.pw-toggle svg{width:18px;height:18px}
+.error{background:#fee2e2;color:#991b1b;padding:10px 14px;border-radius:8px;font-size:13px;margin-bottom:16px}
+.btn{width:100%;padding:12px;background:#0d3d23;color:#fff;border:none;border-radius:8px;font-family:inherit;font-size:14px;font-weight:600;cursor:pointer;margin-top:8px;transition:background .15s}
+.btn:hover{background:#0b341e}
+.forgot{margin-top:20px;text-align:center}
+.forgot a{color:#0d3d23;font-size:13px;text-decoration:none;font-weight:600}
+.forgot a:hover{text-decoration:underline}
+</style>
+</head>
+<body>
+<div class="box">
+  <div class="logo">
+    <img src="{{ url_for('static', filename='img/GR.jpg') }}" alt="GR Logo" class="logo-img">
+    <div><h1>GR</h1><p>Asset Management System</p></div>
+  </div>
+  <h2>Sign in</h2>
+  <p class="sub">Enter your credentials to access the system.</p>
+  {% if error %}<div class="error">{{ error }}</div>{% endif %}
+  <form method="POST" action="{{ url_for('auth.login') }}">
+    <input type="hidden" name="csrf_token" value="{{ csrf_token() }}">
+    <div class="fg">
+      <label for="username">Username</label>
+      <input name="username" id="username" type="text" placeholder="Enter username" autocomplete="username" autofocus required>
+    </div>
+    <div class="fg">
+      <label for="password">Password</label>
+      <div class="pw-wrap">
+        <input name="password" id="password" type="password" placeholder="Enter password" autocomplete="current-password" required>
+        <button type="button" class="pw-toggle" id="pw-toggle" aria-label="Show password" title="Show password">
+          <svg id="icon-show" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/>
+          </svg>
+          <svg id="icon-hide" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="display:none">
+            <path d="M17.94 17.94A10.07 10.07 0 0 1 12 20c-7 0-11-8-11-8a18.45 18.45 0 0 1 5.06-5.94M9.9 4.24A9.12 9.12 0 0 1 12 4c7 0 11 8 11 8a18.5 18.5 0 0 1-2.16 3.19m-6.72-1.07a3 3 0 1 1-4.24-4.24"/><line x1="1" y1="1" x2="23" y2="23"/>
+          </svg>
+        </button>
+      </div>
+    </div>
+    <button type="submit" class="btn">Sign In &rarr;</button>
+  </form>
+  <div class="forgot">
+    <a href="{{ url_for('auth.reset_password') }}">Forgot password?</a>
+  </div>
+</div>
+<script>
+(function () {
+  var pw = document.getElementById('password');
+  var btn = document.getElementById('pw-toggle');
+  var iconShow = document.getElementById('icon-show');
+  var iconHide = document.getElementById('icon-hide');
+  var visible = false;
+
+  function updateToggle() {
+    btn.classList.toggle('visible', pw.value.length > 0);
+    if (!pw.value.length) {
+      pw.type = 'password';
+      visible = false;
+      iconShow.style.display = '';
+      iconHide.style.display = 'none';
+      btn.setAttribute('aria-label', 'Show password');
+      btn.title = 'Show password';
+    }
+  }
+
+  pw.addEventListener('input', updateToggle);
+
+  btn.addEventListener('click', function () {
+    visible = !visible;
+    pw.type = visible ? 'text' : 'password';
+    iconShow.style.display = visible ? 'none' : '';
+    iconHide.style.display = visible ? '' : 'none';
+    btn.setAttribute('aria-label', visible ? 'Hide password' : 'Show password');
+    btn.title = visible ? 'Hide password' : 'Show password';
+    pw.focus();
+  });
+})();
+</script>
+</body>
+</html>

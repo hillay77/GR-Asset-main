@@ -1,0 +1,101 @@
+{% extends 'base.html' %}
+{% block title %}My Profile — GR AMS{% endblock %}
+{% block page_title %}My Profile{% endblock %}
+{% block content %}
+
+<div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;align-items:start">
+
+  <!-- Profile form -->
+  <div>
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-header">
+        <div class="avatar" style="width:42px;height:42px;font-size:15px">{{ current_user.initials }}</div>
+        <h2>Edit Profile</h2>
+      </div>
+      <form method="POST" action="{{ url_for('main.profile') }}">
+        <div style="padding:24px">
+          <div class="form-grid">
+            <div class="form-group">
+              <label>Full Name *</label>
+              <input name="name" value="{{ current_user.name }}" required>
+            </div>
+            <div class="form-group">
+              <label>Email Address</label>
+              <input name="email" type="email" value="{{ current_user.email or '' }}" placeholder="your@email.com">
+            </div>
+            <div class="form-group">
+              <label>Department</label>
+              <input name="department" value="{{ current_user.department or '' }}" placeholder="e.g. Programs">
+            </div>
+            <div class="form-group">
+              <label>Username</label>
+              <input value="{{ current_user.username }}" disabled style="background:var(--surface2);color:var(--text-muted)">
+              <span style="font-size:11px;color:var(--text-muted)">Username cannot be changed. Contact admin.</span>
+            </div>
+            <div class="form-group">
+              <label>Role</label>
+              <input value="{{ current_user.role_label }}" disabled style="background:var(--surface2);color:var(--text-muted)">
+            </div>
+            <div class="form-group">
+              <label>Account Status</label>
+              <input value="{{ current_user.status|title }}" disabled style="background:var(--surface2);color:var(--text-muted)">
+            </div>
+          </div>
+        </div>
+        <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:space-between;align-items:center">
+          <a href="{{ url_for('main.change_password') }}" class="btn btn-outline">🔒 Change Password</a>
+          <button type="submit" class="btn btn-primary">Save Profile</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- My assets summary -->
+  <div>
+    <div class="card">
+      <div class="card-header">
+        <h2>My Assets</h2>
+        <span class="text-muted text-sm">{{ my_assets|length }} assigned</span>
+      </div>
+      <div class="card-body">
+        {% if my_assets %}
+        <table>
+          <thead><tr><th>Tag</th><th>Name</th><th>Condition</th></tr></thead>
+          <tbody>
+            {% for a in my_assets %}
+            <tr>
+              <td><span class="asset-tag" style="font-size:11px">{{ a.tag }}</span></td>
+              <td>{{ a.name }}</td>
+              <td><span class="badge badge-{{ a.condition }}">{{ a.condition|title }}</span></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+        {% else %}
+        <div style="text-align:center;padding:40px;color:var(--text-muted)">
+          <p>No assets currently assigned to you.</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Account info card -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-header"><h2>Account Information</h2></div>
+      <div style="padding:16px 20px">
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600">Member Since</div>
+            <div style="font-size:13px;font-weight:500;margin-top:3px">{{ current_user.created_at|dateformat }}</div>
+          </div>
+          <div>
+            <div style="font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.3px;font-weight:600">Role</div>
+            <div style="margin-top:3px"><span class="badge badge-{{ current_user.role }}">{{ current_user.role_label }}</span></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}

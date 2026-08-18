@@ -1,0 +1,96 @@
+{% extends 'base.html' %}
+{% block title %}{{ title }} — GR AMS{% endblock %}
+{% block page_title %}{{ title }}{% endblock %}
+{% block content %}
+<div class="page-title">
+  <div class="page-title-text"><h2>Manage Roles</h2><p>Create, edit or remove system roles for user access.</p></div>
+  <div style="display:flex;gap:10px;align-items:center">
+    <button onclick="document.getElementById('add-role-modal').style.display='flex'" class="btn btn-primary">+ Add Role</button>
+    <a href="{{ url_for('users.index') }}" class="btn btn-outline">← Back to Users</a>
+  </div>
+</div>
+<div class="card">
+  <div class="card-body">
+    <table>
+      <thead>
+        <tr><th>Role Key</th><th>Display Name</th><th>Description</th><th>Actions</th></tr>
+      </thead>
+      <tbody>
+        {% if roles %}
+          {% for role in roles %}
+          <tr>
+            <td><code>{{ role.name }}</code></td>
+            <td>{{ role.label }}</td>
+            <td class="text-muted">{{ role.description or '—' }}</td>
+            <td>
+              <div class="flex gap-2">
+                <button type="button" data-id="{{ role.id }}" data-name="{{ role.name|e }}" data-label="{{ role.label|e }}" data-description="{{ role.description|e }}" onclick="editRole(this)" class="btn btn-sm btn-outline">Edit</button>
+                <form method="POST" action="{{ url_for('users.role_delete', role_id=role.id) }}" onsubmit="return confirm('Delete this role?')">
+                  <button type="submit" class="btn btn-sm btn-danger">Del</button>
+                </form>
+              </div>
+            </td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr><td colspan="4" class="text-muted">No roles defined yet. Use + Add Role to create one.</td></tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+</div>
+
+<div id="add-role-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Add Role</h3>
+      <button onclick="document.getElementById('add-role-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+    <form method="POST" action="{{ url_for('users.role_new') }}">
+      <div style="padding:20px 24px">
+        <div class="form-grid">
+          <div class="form-group"><label>Role Key *</label><input name="name" placeholder="e.g. finance" required></div>
+          <div class="form-group"><label>Display Name *</label><input name="label" placeholder="e.g. Finance Officer" required></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Description</label><input name="description" placeholder="Optional description"></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('add-role-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Add Role</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div id="edit-role-modal" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:200;align-items:center;justify-content:center;padding:20px">
+  <div style="background:#fff;border-radius:12px;width:100%;max-width:520px;box-shadow:0 4px 32px rgba(0,0,0,.2)">
+    <div style="padding:20px 24px 16px;border-bottom:1px solid var(--border);display:flex;align-items:center">
+      <h3 style="font-size:16px;font-weight:600;flex:1">Edit Role</h3>
+      <button onclick="document.getElementById('edit-role-modal').style.display='none'" style="background:none;border:none;font-size:20px;cursor:pointer;color:var(--text-muted)">×</button>
+    </div>
+    <form id="edit-role-form" method="POST">
+      <div style="padding:20px 24px">
+        <div class="form-grid">
+          <div class="form-group"><label>Role Key *</label><input id="er-name" name="name" required></div>
+          <div class="form-group"><label>Display Name *</label><input id="er-label" name="label" required></div>
+          <div class="form-group" style="grid-column:1/-1"><label>Description</label><input id="er-description" name="description"></div>
+        </div>
+      </div>
+      <div style="padding:16px 24px;border-top:1px solid var(--border);display:flex;justify-content:flex-end;gap:10px">
+        <button type="button" onclick="document.getElementById('edit-role-modal').style.display='none'" class="btn btn-outline">Cancel</button>
+        <button type="submit" class="btn btn-primary">Save</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+function editRole(id, name, label, description) {
+  document.getElementById('edit-role-form').action = '{{ url_for('users.role_edit', role_id=0) }}'.replace('/0/', '/' + id + '/');
+  document.getElementById('er-name').value = name;
+  document.getElementById('er-label').value = label;
+  document.getElementById('er-description').value = description === 'None' ? '' : description;
+  document.getElementById('edit-role-modal').style.display = 'flex';
+}
+</script>
+{% endblock %}
