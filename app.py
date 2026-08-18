@@ -339,3 +339,9 @@ def _load_env(path):
             value = value.strip().strip('"').strip("'")
             if key and key not in os.environ:
                 os.environ[key] = value
+
+
+# Export a module-level app object so Gunicorn/Render can load it as:
+#   gunicorn app:app
+app = create_app()
+application = app
