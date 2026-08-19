@@ -10,5 +10,5 @@ Flask-Limiter==4.1.1
 openpyxl==3.1.2
 reportlab==4.4.9
 pillow>=10.0.0
+psycopg2-binary==2.9.9
 gunicorn==23.0.0
-psycopg[binary]==3.3.4
